@@ -71,6 +71,17 @@
       color: #d0d0d0;
     }
 
+    /* Fallback Placeholder for Images */
+    .image-placeholder {
+      font-size: 1.2rem;
+      color: #aaa;
+      margin: 20px 0;
+      text-align: center;
+      padding: 20px;
+      border: 2px dashed #444;
+      border-radius: 8px;
+    }
+
     /* Mobile Adjustments */
     @media (max-width: 600px) {
       .post img {
@@ -85,7 +96,7 @@
   <div id="feed"></div>
 
   <script>
-    // Intersection Observer to add the "active" class when posts are in view.
+    // Use an Intersection Observer to animate posts as they scroll into view.
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -95,6 +106,8 @@
         }
       });
     }, { threshold: 0.5 });
+
+    const feed = document.getElementById('feed');
 
     // Preloaded posts array
     const preLoadedPosts = [
@@ -106,7 +119,7 @@
       {
         title: "The V-model Development Method",
         imgUrl: "https://idss-assets.iu.org/books/DLMIMITSS01_E/001-2023-0814_2024-09-23T14-40-08.738Z/html/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z_2024-11-28T14-02-37-288Z_dita_TEAQ.2.0.5.1_html_1-7-1/book/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z/generated/images/relative_361e8dccbb4a792b927a67855b143b7b5c2d0473ce32fbebeb75107b48d1ff38.jpg",
-        text: "The V-model mirrors each development phase with a corresponding testing phase. This parallel structure reinforces quality by ensuring validation keeps pace with development."
+        text: "The V-model mirrors each development phase with a corresponding testing phase. This parallel structure reinforces quality by ensuring that validation keeps pace with development."
       },
       {
         title: "Overview of the Scrum Development Method",
@@ -114,8 +127,6 @@
         text: "Scrum is an agile framework focused on iterative progress and rapid feedback. With its time-boxed sprints and collaborative routines, teams can quickly adapt to changes while continuously delivering value."
       }
     ];
-
-    const feed = document.getElementById('feed');
 
     // Function to create and append a new post to the feed
     function addPost(postData) {
@@ -129,6 +140,14 @@
       const image = document.createElement('img');
       image.src = postData.imgUrl;
       image.alt = postData.title;
+      // When an image fails to load, hide it and show a fallback placeholder.
+      image.onerror = function() {
+        image.style.display = 'none';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'image-placeholder';
+        placeholder.textContent = "🖼️ " + postData.title;
+        post.insertBefore(placeholder, image.nextSibling);
+      };
       post.appendChild(image);
 
       const postText = document.createElement('p');
