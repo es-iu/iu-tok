@@ -44,40 +44,48 @@
       object-fit: cover;
       cursor: pointer;
     }
-    /* Overlay for title, description, and rating buttons */
+    /* Overlay container at the bottom */
     .overlay {
       position: absolute;
-      /* Ensure the overlay stays above the safe area on mobile */
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       left: 0;
       width: 100%;
-      text-align: center;
+      padding: 0 20px;
       z-index: 2;
-      pointer-events: none; /* allow image clicks through overlay except rating buttons */
     }
-    .overlay h2, .overlay p {
-      background: rgba(0, 0, 0, 0.5);
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 4px;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-      margin: 5px;
-      pointer-events: none;
-    }
-    /* Rating container (buttons need pointer events enabled) */
-    .rating {
-      margin-top: 10px;
+    /* Overlay top row: left for audio icon, right for rating buttons */
+    .overlay-top {
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: center;
+    }
+    /* Audio container on left */
+    .audio-container {
+      pointer-events: auto;
+    }
+    .audio-icon {
+      width: 24px;
+      height: 24px;
+      /* Default color: semi-transparent white */
+      color: rgba(255,255,255,0.7);
+    }
+    /* When audio is playing, change color to green */
+    .audio-icon.on {
+      color: #4caf50;
+    }
+    /* Rating container on right, vertical stack */
+    .rating-container {
+      display: flex;
+      flex-direction: column;
       gap: 10px;
       pointer-events: auto;
     }
-    .rating button {
+    .rating-container button {
       font-size: 1.5rem;
       background-color: rgba(0, 0, 0, 0.5);
       border: none;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: transform 0.3s ease;
       padding: 10px;
       border-radius: 50%;
       text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
@@ -85,20 +93,47 @@
     }
     /* Modern thumbs up/down animations */
     @keyframes thumbsUpAnim {
-      0% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
-      50% { transform: scale(1.3); background-color: #4caf50; }
-      100% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
     }
     @keyframes thumbsDownAnim {
-      0% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
-      50% { transform: scale(1.3); background-color: #f44336; }
-      100% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
     }
     .thumbs-up-animate {
       animation: thumbsUpAnim 0.8s ease-out;
     }
     .thumbs-down-animate {
       animation: thumbsDownAnim 0.8s ease-out;
+    }
+    /* Overlay bottom row: title and description */
+    .overlay-bottom {
+      margin-top: 10px;
+    }
+    .overlay-bottom h2,
+    .overlay-bottom p {
+      background: rgba(0, 0, 0, 0.5);
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 4px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      margin: 5px 0;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .overlay {
+        padding: 0 10px;
+      }
+      .rating-container button {
+        font-size: 1.3rem;
+        padding: 8px;
+      }
+      .audio-icon {
+        width: 20px;
+        height: 20px;
+      }
     }
   </style>
 </head>
@@ -108,9 +143,9 @@
 
   <script>
     /***** Global Variables & Data *****/
-    let currentAudio = null; // Track the currently playing audio
+    let currentAudio = null; // Tracks the currently playing audio
 
-    // Preloaded posts with dummy hosting links.
+    // Preloaded posts with the provided links.
     const preLoadedPosts = [
       {
         title: "Securing the Chain: How Consensus Mechanisms Keep Blockchain Honest",
@@ -149,23 +184,38 @@
           if (entry.target.audioElement) {
             if (currentAudio && currentAudio !== entry.target.audioElement) {
               currentAudio.pause();
+              updateAudioIndicator(currentAudio, false);
             }
             entry.target.audioElement.play().catch(err => {
               console.error('Auto-play error:', err);
             });
             currentAudio = entry.target.audioElement;
+            updateAudioIndicator(currentAudio, true);
           }
         } else {
           entry.target.classList.remove('active');
           if (entry.target.audioElement) {
             entry.target.audioElement.pause();
             if (currentAudio === entry.target.audioElement) {
+              updateAudioIndicator(currentAudio, false);
               currentAudio = null;
             }
           }
         }
       });
     }, { threshold: 0.5 });
+
+    /***** Helper: Update Audio Icon Indicator *****/
+    function updateAudioIndicator(audioEl, isOn) {
+      // Each post stores a reference to its audio icon element.
+      if (audioEl.parentElement && audioEl.parentElement.audioIcon) {
+        if (isOn) {
+          audioEl.parentElement.audioIcon.classList.add('on');
+        } else {
+          audioEl.parentElement.audioIcon.classList.remove('on');
+        }
+      }
+    }
 
     /***** Function to Create and Append a Post *****/
     function addPost(postData) {
@@ -193,21 +243,29 @@
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
 
-      // Title
-      const titleElem = document.createElement('h2');
-      titleElem.textContent = postData.title;
-      overlay.appendChild(titleElem);
+      /***** Overlay Top: Audio Icon (Left) & Rating Buttons (Right) *****/
+      const overlayTop = document.createElement('div');
+      overlayTop.className = 'overlay-top';
 
-      // Text / Description
-      const textElem = document.createElement('p');
-      textElem.textContent = postData.text;
-      overlay.appendChild(textElem);
+      // Audio container on the left.
+      const audioContainer = document.createElement('div');
+      audioContainer.className = 'audio-container';
+      // Create a real audio icon using inline SVG.
+      const audioIcon = document.createElement('div');
+      audioIcon.className = 'audio-icon';
+      audioIcon.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3z"></path>
+        </svg>
+      `;
+      audioContainer.appendChild(audioIcon);
+      // Save reference to the audio icon on the post.
+      post.audioIcon = audioIcon;
 
-      // Rating container.
-      const ratingDiv = document.createElement('div');
-      ratingDiv.className = 'rating';
+      // Rating container on the right (vertical: thumbs up on top, thumbs down below).
+      const ratingContainer = document.createElement('div');
+      ratingContainer.className = 'rating-container';
 
-      // Thumbs Up Button with modern animation.
       const thumbsUp = document.createElement('button');
       thumbsUp.innerHTML = '👍';
       thumbsUp.addEventListener('click', () => {
@@ -217,7 +275,6 @@
         thumbsUp.classList.remove('thumbs-up-animate');
       });
 
-      // Thumbs Down Button with modern animation.
       const thumbsDown = document.createElement('button');
       thumbsDown.innerHTML = '👎';
       thumbsDown.addEventListener('click', () => {
@@ -227,10 +284,28 @@
         thumbsDown.classList.remove('thumbs-down-animate');
       });
 
-      ratingDiv.appendChild(thumbsUp);
-      ratingDiv.appendChild(thumbsDown);
-      overlay.appendChild(ratingDiv);
+      ratingContainer.appendChild(thumbsUp);
+      ratingContainer.appendChild(thumbsDown);
 
+      // Assemble the overlay top row.
+      overlayTop.appendChild(audioContainer);
+      overlayTop.appendChild(ratingContainer);
+
+      /***** Overlay Bottom: Title and Description *****/
+      const overlayBottom = document.createElement('div');
+      overlayBottom.className = 'overlay-bottom';
+
+      const titleElem = document.createElement('h2');
+      titleElem.textContent = postData.title;
+      overlayBottom.appendChild(titleElem);
+
+      const textElem = document.createElement('p');
+      textElem.textContent = postData.text;
+      overlayBottom.appendChild(textElem);
+
+      // Assemble the complete overlay.
+      overlay.appendChild(overlayTop);
+      overlay.appendChild(overlayBottom);
       post.appendChild(overlay);
 
       // Tapping the image toggles the audio on/off.
@@ -239,12 +314,15 @@
           if (post.audioElement.paused) {
             if (currentAudio && currentAudio !== post.audioElement) {
               currentAudio.pause();
+              updateAudioIndicator(currentAudio, false);
             }
             post.audioElement.play().catch(err => console.error(err));
             currentAudio = post.audioElement;
+            updateAudioIndicator(currentAudio, true);
           } else {
             post.audioElement.pause();
             if (currentAudio === post.audioElement) {
+              updateAudioIndicator(currentAudio, false);
               currentAudio = null;
             }
           }
@@ -256,11 +334,10 @@
     }
 
     /***** Append Posts & Endless Loop *****/
-    // Append one set of posts.
     function appendPosts() {
       preLoadedPosts.forEach(postData => addPost(postData));
     }
-
+    // Append initial set.
     appendPosts();
 
     // Endless loop: When scrolling near the bottom, append another copy.
