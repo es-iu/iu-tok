@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dark Mode Scrolling Feed</title>
+  <title>TikTok-Style Endless Scrolling Feed</title>
   <style>
-    /* Base Styles */
+    /* Reset & Base Styles */
     * {
       box-sizing: border-box;
     }
@@ -13,69 +13,107 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background-color: #121212;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      scroll-behavior: smooth;
+      overflow: hidden;
+      background-color: #000;
+      font-family: Arial, sans-serif;
     }
-
-    /* Feed Container with Scroll Snap */
+    /* The feed container occupies the full viewport height and uses scroll snap */
     #feed {
       height: 100vh;
       overflow-y: scroll;
       scroll-snap-type: y mandatory;
       -webkit-overflow-scrolling: touch;
     }
-
-    /* Post Styling */
+    /* Each post takes up 100vh and is relative so we can absolutely position the media & overlay */
     .post {
-      min-height: 100vh;
+      position: relative;
+      height: 100vh;
       scroll-snap-align: start;
+      overflow: hidden;
+    }
+    /* Media (video or image) fills the post; object-fit: cover crops it like TikTok */
+    .media {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+    /* The overlay contains text and controls; it sits on top of the media */
+    .overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 30px 20px;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 2;
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(100%);
       transition: opacity 0.8s ease, transform 0.8s ease;
     }
-    .post.active {
+    /* When a post becomes active (at least 50% visible), show the overlay */
+    .post.active .overlay {
       opacity: 1;
       transform: translateY(0);
     }
-    .post h2 {
-      margin-top: 0;
+    /* Info section (title & description) on the left */
+    .info {
+      max-width: 70%;
+    }
+    .info h2 {
+      margin: 0;
       font-size: 2rem;
-      margin-bottom: 15px;
-      color: #ffffff;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     }
-    .post img {
-      max-width: 80%;
-      max-height: 50vh;
-      object-fit: contain;
-      border-radius: 8px;
-      margin: 20px 0;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-      transition: transform 0.3s ease;
+    .info p {
+      margin: 5px 0 0;
+      font-size: 1rem;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+    /* Actions section on the right: vertical thumbs up/down */
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .actions button {
+      font-size: 1.5rem;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 50%;
+      padding: 10px;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
-    .post img:hover {
-      transform: scale(1.02);
+    .actions button.selected-up {
+      background-color: #4caf50;
+      color: #fff;
     }
-    .post p {
-      max-width: 80%;
-      line-height: 1.5;
-      text-align: center;
-      font-size: 1.1rem;
-      color: #d0d0d0;
+    .actions button.selected-down {
+      background-color: #f44336;
+      color: #fff;
     }
-
-    /* Mobile Adjustments */
+    /* (Optional) Hide native video controls to mimic the modern full-screen style */
+    video::-webkit-media-controls {
+      display: none !important;
+    }
+    video::-moz-media-controls {
+      display: none !important;
+    }
     @media (max-width: 600px) {
-      .post img {
-        max-width: 90%;
-        max-height: 40vh;
+      .info h2 {
+        font-size: 1.5rem;
+      }
+      .info p {
+        font-size: 0.9rem;
       }
     }
   </style>
@@ -85,68 +123,151 @@
   <div id="feed"></div>
 
   <script>
-    // Intersection Observer to add the "active" class when posts scroll into view.
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        } else {
-          entry.target.classList.remove('active');
-        }
-      });
-    }, { threshold: 0.5 });
-
-    const feed = document.getElementById('feed');
-
-    // Preloaded posts array
+    // The preloaded posts array (adjust file names and paths as needed)
     const preLoadedPosts = [
       {
-        title: "The Waterfall Model",
-        imgUrl: "https://idss-assets.iu.org/books/DLMIMITSS01_E/001-2023-0814_2024-09-23T14-40-08.738Z/html/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z_2024-11-28T14-02-37-288Z_dita_TEAQ.2.0.5.1_html_1-7-1/book/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z/generated/images/relative_067a341253fc1fbab9942c326e0e00b583596c61b9af8abf31ffe3a480f1a397.jpg",
-        text: "The Waterfall Model is a sequential design process where each phase cascades into the next. Though rigid, it clearly defines project milestones and deliverables for structured progress."
+        title: "Bitcoin Podast",
+        mediaType: "image",
+        mediaSrc: "images/bc.jpg",
+        // Optional audio accompanying the image.
+        audioSrc: "audio/Bitcoin.mp3",
+        text: "What is bitcoin?"
       },
       {
-        title: "The V-model Development Method",
-        imgUrl: "https://idss-assets.iu.org/books/DLMIMITSS01_E/001-2023-0814_2024-09-23T14-40-08.738Z/html/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z_2024-11-28T14-02-37-288Z_dita_TEAQ.2.0.5.1_html_1-7-1/book/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z/generated/images/relative_361e8dccbb4a792b927a67855b143b7b5c2d0473ce32fbebeb75107b48d1ff38.jpg",
-        text: "The V-model mirrors each development phase with a corresponding testing phase. This parallel structure reinforces quality by ensuring that validation keeps pace with development."
+        title: "Blockchain Overview Video",
+        mediaType: "video",
+        mediaSrc: "videos/2.mp4",
+        text: "Blockchain Overview"
       },
       {
-        title: "Overview of the Scrum Development Method",
-        imgUrl: "https://idss-assets.iu.org/books/DLMIMITSS01_E/001-2023-0814_2024-09-23T14-40-08.738Z/html/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z_2024-11-28T14-02-37-288Z_dita_TEAQ.2.0.5.1_html_1-7-1/book/book_DLMIMITSS01_E_001-2023-0814_2024-09-23T14-40-08.738Z/generated/images/relative_a0380f8d0cf4921f31f6879846d30fb2aa00aa49e8f261f7de83d1a0498bf2c5.jpg",
-        text: "Scrum is an agile framework focused on iterative progress and rapid feedback. With its time-boxed sprints and collaborative routines, teams can quickly adapt to changes while continuously delivering value."
+        title: "Bitcoin Intro Video",
+        mediaType: "video",
+        mediaSrc: "videos/1.mp4",
+        text: "Bitcoin Introduction"
       }
     ];
 
-    // Function to create and append a new post to the feed
+    const feed = document.getElementById('feed');
+
+    // Function to create and append a post.
     function addPost(postData) {
       const post = document.createElement('div');
       post.className = 'post';
 
-      const postTitle = document.createElement('h2');
-      postTitle.textContent = postData.title;
-      post.appendChild(postTitle);
+      // Create the media element (video or image)
+      let mediaElement;
+      if (postData.mediaType === "video") {
+        mediaElement = document.createElement('video');
+        mediaElement.src = postData.mediaSrc;
+        mediaElement.setAttribute("playsinline", "");
+        // Hide native controls to mimic the TikTok style
+        mediaElement.controls = false;
+      } else {
+        mediaElement = document.createElement('img');
+        mediaElement.src = postData.mediaSrc;
+        mediaElement.alt = postData.title;
+      }
+      mediaElement.classList.add('media');
+      post.appendChild(mediaElement);
 
-      // Create a plain image element.
-      const image = document.createElement('img');
-      image.src = postData.imgUrl;
-      image.alt = postData.title;
+      // Create the overlay for text and controls
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
 
-      // Log image load success or failure for debugging.
-      image.onload = () => console.log('Image loaded:', image.src);
-      image.onerror = () => console.error('Failed to load image:', image.src);
+      // Info section (title and description)
+      const info = document.createElement('div');
+      info.className = 'info';
+      const titleEl = document.createElement('h2');
+      titleEl.textContent = postData.title;
+      info.appendChild(titleEl);
+      const textEl = document.createElement('p');
+      textEl.textContent = postData.text;
+      info.appendChild(textEl);
+      overlay.appendChild(info);
 
-      post.appendChild(image);
+      // Actions section: thumbs up and thumbs down
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const thumbsUpBtn = document.createElement('button');
+      thumbsUpBtn.innerHTML = '👍';
+      thumbsUpBtn.addEventListener('click', () => {
+        if (thumbsUpBtn.classList.contains('selected-up')) {
+          thumbsUpBtn.classList.remove('selected-up');
+        } else {
+          thumbsUpBtn.classList.add('selected-up');
+          thumbsDownBtn.classList.remove('selected-down');
+        }
+      });
+      const thumbsDownBtn = document.createElement('button');
+      thumbsDownBtn.innerHTML = '👎';
+      thumbsDownBtn.addEventListener('click', () => {
+        if (thumbsDownBtn.classList.contains('selected-down')) {
+          thumbsDownBtn.classList.remove('selected-down');
+        } else {
+          thumbsDownBtn.classList.add('selected-down');
+          thumbsUpBtn.classList.remove('selected-up');
+        }
+      });
+      actions.appendChild(thumbsUpBtn);
+      actions.appendChild(thumbsDownBtn);
+      overlay.appendChild(actions);
 
-      const postText = document.createElement('p');
-      postText.textContent = postData.text;
-      post.appendChild(postText);
+      // If an audio file is provided (e.g. for images), create a hidden audio element
+      if (postData.audioSrc) {
+        const audioEl = document.createElement('audio');
+        audioEl.src = postData.audioSrc;
+        // We hide the default controls; you could also create a custom audio icon if desired.
+        audioEl.controls = false;
+        audioEl.preload = "metadata";
+        // Append the audio element to the info section (or elsewhere) as needed.
+        info.appendChild(audioEl);
+      }
 
+      post.appendChild(overlay);
       feed.appendChild(post);
       observer.observe(post);
     }
 
-    // Add each preloaded post to the feed
+    // Intersection Observer to auto-play media when a post is in view and pause when it’s not.
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+          // Auto-play video elements.
+          const videos = entry.target.getElementsByTagName('video');
+          for (let v of videos) {
+            v.play().catch(error => console.log("Video play error:", error));
+          }
+          // Auto-play audio elements.
+          const audios = entry.target.getElementsByTagName('audio');
+          for (let a of audios) {
+            a.play().catch(error => console.log("Audio play error:", error));
+          }
+        } else {
+          entry.target.classList.remove('active');
+          // Pause any playing videos.
+          const videos = entry.target.getElementsByTagName('video');
+          for (let v of videos) {
+            if (!v.paused) v.pause();
+          }
+          // Pause any playing audios.
+          const audios = entry.target.getElementsByTagName('audio');
+          for (let a of audios) {
+            if (!a.paused) a.pause();
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+
+    // Append the initial set of posts.
     preLoadedPosts.forEach(postData => addPost(postData));
+
+    // Endless Loop: When scrolling near the bottom, re-append posts.
+    feed.addEventListener('scroll', () => {
+      if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 100) {
+        preLoadedPosts.forEach(postData => addPost(postData));
+      }
+    });
   </script>
 </body>
 </html>
