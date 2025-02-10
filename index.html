@@ -240,29 +240,31 @@
       background: #43a047;
     }
     /* Fun Animations */
-    /* Firework animation for correct answer (persistent & big fireworks all over) */
+    /* Firework (rocket) animation for correct answer: Staggered and big fireworks all over the screen */
     .firework {
       position: absolute;
       font-size: 2.5rem;
       pointer-events: none;
+      opacity: 0;
       animation: firework 2.5s ease-out forwards;
     }
     @keyframes firework {
       0% { transform: scale(0); opacity: 1; }
       100% { transform: scale(8); opacity: 0; }
     }
-    /* Rain down animation for sad faces */
+    /* Rain down animation for sad faces: Staggered raindrops with different delays */
     .sad-face {
       position: absolute;
       font-size: 2.5rem;
       pointer-events: none;
+      opacity: 0;
       animation: rainDown 3s linear forwards;
     }
     @keyframes rainDown {
       0% { transform: translateY(0); opacity: 1; }
       100% { transform: translateY(100vh); opacity: 0; }
     }
-    /* Shake animation (for wrong answers) */
+    /* Shake animation for wrong answers */
     @keyframes shake {
       0% { transform: translateX(0); }
       20% { transform: translateX(-10px); }
@@ -452,16 +454,20 @@
     
     /***** Fireworks & Sad Faces Animations for Quiz *****/
     function spawnFireworks(container) {
-      const numFireworks = 15; // More fireworks for a fun effect
+      const numFireworks = 15;
       for (let i = 0; i < numFireworks; i++) {
         const firework = document.createElement('div');
         firework.className = 'firework';
         firework.textContent = '🚀';
-        // Random position within the container
+        // Random position within the container.
         const x = Math.random() * container.clientWidth;
         const y = Math.random() * container.clientHeight;
         firework.style.left = x + 'px';
         firework.style.top = y + 'px';
+        // Random delay between 0 and 1.5 seconds.
+        firework.style.animationDelay = (Math.random() * 1.5) + 's';
+        // Random duration between 2.5 and 4.5 seconds.
+        firework.style.animationDuration = (2.5 + Math.random() * 2) + 's';
         container.appendChild(firework);
         firework.addEventListener('animationend', () => {
           container.removeChild(firework);
@@ -470,15 +476,18 @@
     }
     
     function spawnSadFaces(container) {
-      const numSadFaces = 25; // Rain many sad faces
+      const numSadFaces = 25;
       for (let i = 0; i < numSadFaces; i++) {
         const sadFace = document.createElement('div');
         sadFace.className = 'sad-face';
         sadFace.textContent = '😢';
-        // Random horizontal position across the container
+        // Random horizontal position.
         const x = Math.random() * container.clientWidth;
         sadFace.style.left = x + 'px';
-        sadFace.style.top = '-30px';
+        // Random delay between 0 and 2 seconds.
+        sadFace.style.animationDelay = (Math.random() * 2) + 's';
+        // Random duration between 3 and 5 seconds.
+        sadFace.style.animationDuration = (3 + Math.random() * 2) + 's';
         container.appendChild(sadFace);
         sadFace.addEventListener('animationend', () => {
           container.removeChild(sadFace);
@@ -487,17 +496,14 @@
     }
     
     function animateCorrect(quizContainer) {
-      // Spawn many fireworks all over the screen like fireworks.
       spawnFireworks(quizContainer);
     }
     
     function animateWrong(quizContainer) {
-      // Shake the quiz container.
       quizContainer.classList.add('shake');
       quizContainer.addEventListener('animationend', () => {
         quizContainer.classList.remove('shake');
       }, { once: true });
-      // Spawn many sad faces raining down.
       spawnSadFaces(quizContainer);
     }
     
@@ -508,14 +514,11 @@
       
       // Check if this is a quiz post.
       if (postData.quiz) {
-        // Create a quiz container.
         const quizContainer = document.createElement('div');
         quizContainer.className = 'quiz-container';
-        // Display the quiz question.
         const questionElem = document.createElement('h2');
         questionElem.textContent = postData.quiz.question;
         quizContainer.appendChild(questionElem);
-        // Create a container for the answers.
         const answersContainer = document.createElement('div');
         answersContainer.className = 'quiz-answers';
         postData.quiz.answers.forEach((answer, index) => {
@@ -523,19 +526,15 @@
           btn.className = 'quiz-answer';
           btn.textContent = answer;
           btn.addEventListener('click', () => {
-            // Disable all answer buttons.
             const allBtns = answersContainer.querySelectorAll('button');
             allBtns.forEach(b => b.disabled = true);
             if (index === postData.quiz.correctAnswer) {
-              // Correct answer.
               btn.style.backgroundColor = '#4caf50';
               btn.textContent += " ✓";
               animateCorrect(quizContainer);
             } else {
-              // Wrong answer.
               btn.style.backgroundColor = '#f44336';
               btn.textContent += " ✗";
-              // Highlight the correct answer.
               allBtns.forEach((b, i) => {
                 if (i === postData.quiz.correctAnswer) {
                   b.style.backgroundColor = '#4caf50';
@@ -550,16 +549,13 @@
         quizContainer.appendChild(answersContainer);
         post.appendChild(quizContainer);
       } else {
-        // Non-quiz post (image/audio with overlay).
-      
-        // Create the full-screen image element.
+        // Non-quiz post.
         const img = document.createElement('img');
         img.className = 'media';
         img.src = postData.mediaSrc;
         img.alt = postData.title;
         post.appendChild(img);
       
-        // If an audio file is provided, create a hidden audio element.
         if (postData.audioSrc) {
           const audio = document.createElement('audio');
           audio.src = postData.audioSrc;
@@ -569,15 +565,12 @@
           post.audioElement = audio;
         }
       
-        // Create the overlay container.
         const overlay = document.createElement('div');
         overlay.className = 'overlay';
       
-        /***** Overlay Top: Audio Icon, Chat Icon, & Rating Buttons *****/
         const overlayTop = document.createElement('div');
         overlayTop.className = 'overlay-top';
       
-        // Audio container on the left.
         const audioContainer = document.createElement('div');
         audioContainer.className = 'audio-container';
         const audioIcon = document.createElement('div');
@@ -590,19 +583,16 @@
         audioContainer.appendChild(audioIcon);
         post.audioIcon = audioIcon;
       
-        // Create a chat icon using a local PNG "icon.png".
+        const ratingContainer = document.createElement('div');
+        ratingContainer.className = 'rating-container';
+      
+        // Chat icon.
         const chatIcon = document.createElement('img');
         chatIcon.src = "icon.png";
         chatIcon.className = "chat-icon";
         chatIcon.addEventListener('click', () => {
-          // Replace overlay-bottom content with the chat interface.
           showChat(overlayBottom);
         });
-      
-        // Rating container on the right.
-        const ratingContainer = document.createElement('div');
-        ratingContainer.className = 'rating-container';
-        // Append chat icon at the top.
         ratingContainer.appendChild(chatIcon);
       
         const thumbsUp = document.createElement('button');
@@ -640,11 +630,9 @@
         ratingContainer.appendChild(thumbsUp);
         ratingContainer.appendChild(thumbsDown);
       
-        /***** Assemble Overlay Top *****/
         overlayTop.appendChild(audioContainer);
         overlayTop.appendChild(ratingContainer);
       
-        /***** Overlay Bottom: Title & Description (or Chat) *****/
         const overlayBottom = document.createElement('div');
         overlayBottom.className = 'overlay-bottom';
         const titleElem = document.createElement('h2');
@@ -658,7 +646,6 @@
         overlay.appendChild(overlayBottom);
         post.appendChild(overlay);
       
-        // Tapping the image toggles the audio on/off.
         img.addEventListener('click', () => {
           if (post.audioElement) {
             if (post.audioElement.paused) {
