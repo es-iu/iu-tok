@@ -44,14 +44,16 @@
       object-fit: cover;
       cursor: pointer;
     }
-    /* Overlay container at the bottom */
+    /* Overlay container at the bottom with extra padding */
     .overlay {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       left: 0;
       width: 100%;
-      padding: 0 20px;
+      padding: 0 20px 40px 20px; /* extra bottom padding added */
       z-index: 2;
+      /* Use a subtle backdrop filter for a magical, seamless look */
+      backdrop-filter: saturate(180%) blur(10px);
     }
     /* Overlay top row: left for audio icon, right for rating buttons */
     .overlay-top {
@@ -66,12 +68,11 @@
     .audio-icon {
       width: 24px;
       height: 24px;
-      /* Default color: semi-transparent white */
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.7); /* default semi-transparent white */
+      transition: color 0.3s ease;
     }
-    /* When audio is playing, change color to green */
     .audio-icon.on {
-      color: #4caf50;
+      color: #4caf50; /* green when on */
     }
     /* Rating container on right, vertical stack */
     .rating-container {
@@ -91,13 +92,14 @@
       text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
       color: #e0e0e0;
     }
-    /* Keyframes for thumbs up animation with color effect */
+    /* Enhanced Thumbs Up Animation */
     @keyframes thumbsUpAnim {
       0% { transform: scale(1); }
       40% { transform: scale(1.4); filter: brightness(1.2); }
       80% { transform: scale(1.2); filter: brightness(1.1); }
       100% { transform: scale(1); filter: brightness(1); }
     }
+    /* Enhanced Thumbs Down Animation */
     @keyframes thumbsDownAnim {
       0% { transform: scale(1); }
       40% { transform: scale(1.4); filter: brightness(0.8); }
@@ -110,7 +112,7 @@
     .thumbs-down-animate {
       animation: thumbsDownAnim 0.8s ease-out;
     }
-    /* When selected, thumbs up turns green and thumbs down turns red */
+    /* Selected states for thumbs */
     .selected-up {
       background-color: #4caf50 !important;
       color: #fff;
@@ -119,23 +121,21 @@
       background-color: #f44336 !important;
       color: #fff;
     }
-    /* Overlay bottom row: title and description */
+    /* Overlay bottom: title and description with seamless styling */
     .overlay-bottom {
       margin-top: 10px;
     }
     .overlay-bottom h2,
     .overlay-bottom p {
-      background: rgba(0, 0, 0, 0.5);
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 4px;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      /* Remove the solid box background for a seamless look */
+      /* Instead, use a subtle text-shadow for legibility */
       margin: 5px 0;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
     }
     /* Responsive adjustments */
     @media (max-width: 600px) {
       .overlay {
-        padding: 0 10px;
+        padding: 0 10px 40px 10px;
       }
       .rating-container button {
         font-size: 1.3rem;
@@ -144,6 +144,12 @@
       .audio-icon {
         width: 20px;
         height: 20px;
+      }
+      .overlay-bottom h2 {
+        font-size: 1.5rem;
+      }
+      .overlay-bottom p {
+        font-size: 0.9rem;
       }
     }
   </style>
@@ -221,7 +227,6 @@
 
     /***** Helper: Update Audio Icon Indicator *****/
     function updateAudioIndicator(audioEl, isOn) {
-      // Each post stores a reference to its audio icon element.
       if (audioEl.parentElement && audioEl.parentElement.audioIcon) {
         if (isOn) {
           audioEl.parentElement.audioIcon.classList.add('on');
@@ -264,7 +269,7 @@
       // Audio container on the left.
       const audioContainer = document.createElement('div');
       audioContainer.className = 'audio-container';
-      // Create a real audio icon using inline SVG.
+      // Create an audio icon using inline SVG.
       const audioIcon = document.createElement('div');
       audioIcon.className = 'audio-icon';
       audioIcon.innerHTML = `
@@ -273,10 +278,9 @@
         </svg>
       `;
       audioContainer.appendChild(audioIcon);
-      // Save reference to the audio icon on the post.
-      post.audioIcon = audioIcon;
+      post.audioIcon = audioIcon; // Save reference for updates.
 
-      // Rating container on the right (vertical: thumbs up on top, thumbs down below).
+      // Rating container on the right.
       const ratingContainer = document.createElement('div');
       ratingContainer.className = 'rating-container';
 
