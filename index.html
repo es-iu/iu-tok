@@ -91,22 +91,33 @@
       text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
       color: #e0e0e0;
     }
-    /* Modern thumbs up/down animations */
+    /* Keyframes for thumbs up animation with color effect */
     @keyframes thumbsUpAnim {
       0% { transform: scale(1); }
-      50% { transform: scale(1.3); }
-      100% { transform: scale(1); }
+      40% { transform: scale(1.4); filter: brightness(1.2); }
+      80% { transform: scale(1.2); filter: brightness(1.1); }
+      100% { transform: scale(1); filter: brightness(1); }
     }
     @keyframes thumbsDownAnim {
       0% { transform: scale(1); }
-      50% { transform: scale(1.3); }
-      100% { transform: scale(1); }
+      40% { transform: scale(1.4); filter: brightness(0.8); }
+      80% { transform: scale(1.2); filter: brightness(0.9); }
+      100% { transform: scale(1); filter: brightness(1); }
     }
     .thumbs-up-animate {
       animation: thumbsUpAnim 0.8s ease-out;
     }
     .thumbs-down-animate {
       animation: thumbsDownAnim 0.8s ease-out;
+    }
+    /* When selected, thumbs up turns green and thumbs down turns red */
+    .selected-up {
+      background-color: #4caf50 !important;
+      color: #fff;
+    }
+    .selected-down {
+      background-color: #f44336 !important;
+      color: #fff;
     }
     /* Overlay bottom row: title and description */
     .overlay-bottom {
@@ -145,7 +156,7 @@
     /***** Global Variables & Data *****/
     let currentAudio = null; // Tracks the currently playing audio
 
-    // Preloaded posts with the provided links.
+    // Preloaded posts with provided media links.
     const preLoadedPosts = [
       {
         title: "Securing the Chain: How Consensus Mechanisms Keep Blockchain Honest",
@@ -180,20 +191,23 @@
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('active');
-          // Auto-play audio if available
+          // Auto-play audio if available, but only update indicator on success.
           if (entry.target.audioElement) {
             if (currentAudio && currentAudio !== entry.target.audioElement) {
               currentAudio.pause();
               updateAudioIndicator(currentAudio, false);
             }
-            entry.target.audioElement.play().catch(err => {
+            entry.target.audioElement.play().then(() => {
+              currentAudio = entry.target.audioElement;
+              updateAudioIndicator(currentAudio, true);
+            }).catch(err => {
               console.error('Auto-play error:', err);
+              updateAudioIndicator(entry.target.audioElement, false);
             });
-            currentAudio = entry.target.audioElement;
-            updateAudioIndicator(currentAudio, true);
           }
         } else {
           entry.target.classList.remove('active');
+          // Pause audio when post is out of view.
           if (entry.target.audioElement) {
             entry.target.audioElement.pause();
             if (currentAudio === entry.target.audioElement) {
@@ -269,7 +283,14 @@
       const thumbsUp = document.createElement('button');
       thumbsUp.innerHTML = '👍';
       thumbsUp.addEventListener('click', () => {
-        thumbsUp.classList.add('thumbs-up-animate');
+        if (thumbsUp.classList.contains('selected-up')) {
+          thumbsUp.classList.remove('selected-up');
+          thumbsUp.classList.add('thumbs-up-animate');
+        } else {
+          thumbsUp.classList.add('selected-up');
+          thumbsUp.classList.add('thumbs-up-animate');
+          thumbsDown.classList.remove('selected-down');
+        }
       });
       thumbsUp.addEventListener('animationend', () => {
         thumbsUp.classList.remove('thumbs-up-animate');
@@ -278,7 +299,14 @@
       const thumbsDown = document.createElement('button');
       thumbsDown.innerHTML = '👎';
       thumbsDown.addEventListener('click', () => {
-        thumbsDown.classList.add('thumbs-down-animate');
+        if (thumbsDown.classList.contains('selected-down')) {
+          thumbsDown.classList.remove('selected-down');
+          thumbsDown.classList.add('thumbs-down-animate');
+        } else {
+          thumbsDown.classList.add('selected-down');
+          thumbsDown.classList.add('thumbs-down-animate');
+          thumbsUp.classList.remove('selected-up');
+        }
       });
       thumbsDown.addEventListener('animationend', () => {
         thumbsDown.classList.remove('thumbs-down-animate');
@@ -287,7 +315,7 @@
       ratingContainer.appendChild(thumbsUp);
       ratingContainer.appendChild(thumbsDown);
 
-      // Assemble the overlay top row.
+      /***** Assemble Overlay Top *****/
       overlayTop.appendChild(audioContainer);
       overlayTop.appendChild(ratingContainer);
 
@@ -303,7 +331,6 @@
       textElem.textContent = postData.text;
       overlayBottom.appendChild(textElem);
 
-      // Assemble the complete overlay.
       overlay.appendChild(overlayTop);
       overlay.appendChild(overlayBottom);
       post.appendChild(overlay);
@@ -316,9 +343,13 @@
               currentAudio.pause();
               updateAudioIndicator(currentAudio, false);
             }
-            post.audioElement.play().catch(err => console.error(err));
-            currentAudio = post.audioElement;
-            updateAudioIndicator(currentAudio, true);
+            post.audioElement.play().then(() => {
+              currentAudio = post.audioElement;
+              updateAudioIndicator(currentAudio, true);
+            }).catch(err => {
+              console.error(err);
+              updateAudioIndicator(post.audioElement, false);
+            });
           } else {
             post.audioElement.pause();
             if (currentAudio === post.audioElement) {
@@ -339,7 +370,6 @@
     }
     // Append initial set.
     appendPosts();
-
     // Endless loop: When scrolling near the bottom, append another copy.
     feed.addEventListener('scroll', () => {
       if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 50) {
