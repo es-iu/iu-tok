@@ -44,18 +44,16 @@
       object-fit: cover;
       cursor: pointer;
     }
-    /* Overlay container at the bottom with extra padding */
+    /* Overlay container spans full width at bottom (no background here) */
     .overlay {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       left: 0;
       width: 100%;
-      padding: 0 20px 40px 20px; /* extra bottom padding added */
+      padding: 0 20px 40px 20px; /* extra bottom padding */
       z-index: 2;
-      /* Use a subtle backdrop filter for a magical, seamless look */
-      backdrop-filter: saturate(180%) blur(10px);
     }
-    /* Overlay top row: left for audio icon, right for rating buttons */
+    /* Overlay top row (audio icon & rating) – no background */
     .overlay-top {
       display: flex;
       justify-content: space-between;
@@ -121,15 +119,18 @@
       background-color: #f44336 !important;
       color: #fff;
     }
-    /* Overlay bottom: title and description with seamless styling */
+    /* Overlay bottom: title and description with a seamless, magical background */
     .overlay-bottom {
       margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
     }
     .overlay-bottom h2,
     .overlay-bottom p {
-      /* Remove the solid box background for a seamless look */
-      /* Instead, use a subtle text-shadow for legibility */
       margin: 5px 0;
+      /* Use a soft text shadow for legibility */
       text-shadow: 0 2px 8px rgba(0,0,0,0.9);
     }
     /* Responsive adjustments */
