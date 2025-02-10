@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Endless Full-Screen Scrolling Feed with Audio & Rating</title>
+  <title>Endless Full-Screen Scrolling Feed with Chat, Audio & Rating</title>
   <style>
     /* Base Styles */
     * { box-sizing: border-box; }
@@ -44,7 +44,7 @@
       object-fit: cover;
       cursor: pointer;
     }
-    /* Overlay container spans full width at bottom (no background here) */
+    /* Overlay container spans the bottom */
     .overlay {
       position: absolute;
       bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -53,11 +53,12 @@
       padding: 0 20px 40px 20px; /* extra bottom padding */
       z-index: 2;
     }
-    /* Overlay top row (audio icon & rating) – no background */
+    /* Overlay top row (audio icon, chat icon, & rating) */
     .overlay-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 10px;
     }
     /* Audio container on left */
     .audio-container {
@@ -66,11 +67,11 @@
     .audio-icon {
       width: 24px;
       height: 24px;
-      color: rgba(255,255,255,0.7); /* default semi-transparent white */
+      color: rgba(255,255,255,0.7);
       transition: color 0.3s ease;
     }
     .audio-icon.on {
-      color: #4caf50; /* green when on */
+      color: #4caf50;
     }
     /* Rating container on right, vertical stack */
     .rating-container {
@@ -90,14 +91,20 @@
       text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
       color: #e0e0e0;
     }
-    /* Enhanced Thumbs Up Animation */
+    /* Chat icon styling – using local icon.png */
+    .chat-icon {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    /* Enhanced Thumbs Up/Down Animations */
     @keyframes thumbsUpAnim {
       0% { transform: scale(1); }
       40% { transform: scale(1.4); filter: brightness(1.2); }
       80% { transform: scale(1.2); filter: brightness(1.1); }
       100% { transform: scale(1); filter: brightness(1); }
     }
-    /* Enhanced Thumbs Down Animation */
     @keyframes thumbsDownAnim {
       0% { transform: scale(1); }
       40% { transform: scale(1.4); filter: brightness(0.8); }
@@ -119,7 +126,7 @@
       background-color: #f44336 !important;
       color: #fff;
     }
-    /* Overlay bottom: title and description with a seamless, magical background */
+    /* Overlay bottom: title and description with a seamless, magical look */
     .overlay-bottom {
       margin-top: 10px;
       padding: 10px;
@@ -130,8 +137,68 @@
     .overlay-bottom h2,
     .overlay-bottom p {
       margin: 5px 0;
-      /* Use a soft text shadow for legibility */
       text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    }
+    /* Chat Container Styles */
+    .chat-container {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-message {
+      padding: 10px 14px;
+      border-radius: 20px;
+      max-width: 75%;
+      word-wrap: break-word;
+      font-size: 0.95rem;
+      line-height: 1.3;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .chat-message.bot {
+      background: linear-gradient(135deg, #5A9DF4, #2A73E8);
+      align-self: flex-start;
+      color: #fff;
+    }
+    .chat-message.user {
+      background: linear-gradient(135deg, #66BB6A, #43A047);
+      align-self: flex-end;
+      color: #fff;
+    }
+    .chat-input-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .chat-input-container input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 20px;
+      font-size: 1rem;
+    }
+    .chat-input-container button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 20px;
+      background: #4caf50;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s ease;
+    }
+    .chat-input-container button:hover {
+      background: #43a047;
     }
     /* Responsive adjustments */
     @media (max-width: 600px) {
@@ -150,6 +217,14 @@
         font-size: 1.5rem;
       }
       .overlay-bottom p {
+        font-size: 0.9rem;
+      }
+      .chat-container {
+        padding: 12px;
+        max-height: 220px;
+      }
+      .chat-input-container input,
+      .chat-input-container button {
         font-size: 0.9rem;
       }
     }
@@ -237,6 +312,54 @@
       }
     }
 
+    /***** Chat Functions *****/
+    function showChat(overlayBottom) {
+      // Clear existing content.
+      overlayBottom.innerHTML = "";
+      const chatContainer = document.createElement('div');
+      chatContainer.className = 'chat-container';
+      
+      const messagesArea = document.createElement('div');
+      messagesArea.className = 'chat-messages';
+      chatContainer.appendChild(messagesArea);
+      
+      // Add initial bot message.
+      addChatMessage(messagesArea, "Ask me anything about your content! 🚀", 'bot');
+      
+      const inputContainer = document.createElement('div');
+      inputContainer.className = 'chat-input-container';
+      const inputField = document.createElement('input');
+      inputField.type = 'text';
+      inputField.placeholder = 'Type your message...';
+      const sendButton = document.createElement('button');
+      sendButton.textContent = 'Send';
+      inputContainer.appendChild(inputField);
+      inputContainer.appendChild(sendButton);
+      
+      chatContainer.appendChild(inputContainer);
+      overlayBottom.appendChild(chatContainer);
+      
+      sendButton.addEventListener('click', () => {
+        const userText = inputField.value.trim();
+        if (userText) {
+          addChatMessage(messagesArea, userText, 'user');
+          inputField.value = "";
+          setTimeout(() => {
+            addChatMessage(messagesArea, "Ask me anything", 'bot');
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+          }, 1000);
+        }
+      });
+    }
+    
+    function addChatMessage(container, message, type) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message ' + type;
+      msgDiv.textContent = message;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+    
     /***** Function to Create and Append a Post *****/
     function addPost(postData) {
       const post = document.createElement('div');
@@ -263,14 +386,13 @@
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
 
-      /***** Overlay Top: Audio Icon (Left) & Rating Buttons (Right) *****/
+      /***** Overlay Top: Audio Icon, Chat Icon, & Rating Buttons *****/
       const overlayTop = document.createElement('div');
       overlayTop.className = 'overlay-top';
 
       // Audio container on the left.
       const audioContainer = document.createElement('div');
       audioContainer.className = 'audio-container';
-      // Create an audio icon using inline SVG.
       const audioIcon = document.createElement('div');
       audioIcon.className = 'audio-icon';
       audioIcon.innerHTML = `
@@ -281,9 +403,20 @@
       audioContainer.appendChild(audioIcon);
       post.audioIcon = audioIcon; // Save reference for updates.
 
+      // Create a chat icon using a local PNG "icon.png".
+      const chatIcon = document.createElement('img');
+      chatIcon.src = "icon.png";
+      chatIcon.className = "chat-icon";
+      chatIcon.addEventListener('click', () => {
+        // Replace overlay-bottom content with the chat interface.
+        showChat(overlayBottom);
+      });
+      
       // Rating container on the right.
       const ratingContainer = document.createElement('div');
       ratingContainer.className = 'rating-container';
+      // Append chat icon at the top of the rating container.
+      ratingContainer.appendChild(chatIcon);
 
       const thumbsUp = document.createElement('button');
       thumbsUp.innerHTML = '👍';
@@ -324,14 +457,12 @@
       overlayTop.appendChild(audioContainer);
       overlayTop.appendChild(ratingContainer);
 
-      /***** Overlay Bottom: Title and Description *****/
+      /***** Overlay Bottom: Title & Description (or Chat) *****/
       const overlayBottom = document.createElement('div');
       overlayBottom.className = 'overlay-bottom';
-
       const titleElem = document.createElement('h2');
       titleElem.textContent = postData.title;
       overlayBottom.appendChild(titleElem);
-
       const textElem = document.createElement('p');
       textElem.textContent = postData.text;
       overlayBottom.appendChild(textElem);
