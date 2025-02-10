@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Full Screen Endless Scrolling Feed with Audio</title>
+  <title>Endless Full-Screen Scrolling Feed with Audio & Rating</title>
   <style>
     /* Base Styles */
     * { box-sizing: border-box; }
@@ -16,14 +16,14 @@
       font-family: 'Segoe UI', sans-serif;
       scroll-behavior: smooth;
     }
-    /* Feed container takes full viewport height and uses scroll snap */
+    /* Feed container uses scroll snap */
     #feed {
       height: 100vh;
       overflow-y: scroll;
       scroll-snap-type: y mandatory;
       -webkit-overflow-scrolling: touch;
     }
-    /* Each post fills the screen */
+    /* Each post fills the viewport */
     .post {
       position: relative;
       height: 100vh;
@@ -34,7 +34,7 @@
     .post.active {
       opacity: 1;
     }
-    /* Fullscreen image covering the entire post */
+    /* Fullscreen image covers the post */
     .media {
       position: absolute;
       top: 0;
@@ -44,31 +44,33 @@
       object-fit: cover;
       cursor: pointer;
     }
-    /* Overlay for title, text and rating (positioned near the bottom) */
+    /* Overlay for title, description, and rating buttons */
     .overlay {
       position: absolute;
-      bottom: 20px;
+      /* Ensure the overlay stays above the safe area on mobile */
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       left: 0;
       width: 100%;
       text-align: center;
       z-index: 2;
-      pointer-events: none; /* allow image clicks to go through except on buttons */
+      pointer-events: none; /* allow image clicks through overlay except rating buttons */
     }
     .overlay h2, .overlay p {
       background: rgba(0, 0, 0, 0.5);
       display: inline-block;
       padding: 5px 10px;
       border-radius: 4px;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
       margin: 5px;
+      pointer-events: none;
     }
-    /* Rating buttons container */
+    /* Rating container (buttons need pointer events enabled) */
     .rating {
       margin-top: 10px;
       display: flex;
       justify-content: center;
       gap: 10px;
-      pointer-events: auto; /* allow clicks on buttons */
+      pointer-events: auto;
     }
     .rating button {
       font-size: 1.5rem;
@@ -78,19 +80,30 @@
       transition: background-color 0.3s ease;
       padding: 10px;
       border-radius: 50%;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
       color: #e0e0e0;
     }
-    .rating button.selected-up {
-      background-color: #4caf50;
+    /* Modern thumbs up/down animations */
+    @keyframes thumbsUpAnim {
+      0% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
+      50% { transform: scale(1.3); background-color: #4caf50; }
+      100% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
     }
-    .rating button.selected-down {
-      background-color: #f44336;
+    @keyframes thumbsDownAnim {
+      0% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
+      50% { transform: scale(1.3); background-color: #f44336; }
+      100% { transform: scale(1); background-color: rgba(0,0,0,0.5); }
+    }
+    .thumbs-up-animate {
+      animation: thumbsUpAnim 0.8s ease-out;
+    }
+    .thumbs-down-animate {
+      animation: thumbsDownAnim 0.8s ease-out;
     }
   </style>
 </head>
 <body>
-  <!-- The scrolling feed container -->
+  <!-- Scrolling feed container -->
   <div id="feed"></div>
 
   <script>
@@ -99,43 +112,40 @@
 
     // Preloaded posts with dummy hosting links.
     const preLoadedPosts = [
-    {
+      {
         title: "Securing the Chain: How Consensus Mechanisms Keep Blockchain Honest",
         mediaSrc: "https://cdnb.artstation.com/p/assets/images/images/009/358/213/original/tony-twaine-comp-2-2.gif?1518528958",
         audioSrc: "https://res.cloudinary.com/dcwcjnxq8/video/upload/v1739198080/bc_cx56bb.mp3",
         text: "Blockchain's security and reliability depend on consensus mechanisms. In this episode, we break down the different ways blockchains verify transactions."
       },
-    {
+      {
         title: "Blockchain Unwrapped: A Deep Dive into Distributed",
         mediaSrc: "https://miro.medium.com/v2/resize:fit:1400/1*RNJ8GB5GFoIUgaqsi63fNA.gif",
         audioSrc: "https://res.cloudinary.com/dcwcjnxq8/video/upload/v1739198080/2_u0jqjo.mp3",
         text: "What exactly is blockchain, and how does it relate to distributed ledger technology? This episode demystifies the concept and highlights its significance."
       },
-
-
       {
         title: "The Tech Behind Blockchain: What Makes It Work?",
         mediaSrc: "https://ca-times.brightspotcdn.com/dims4/default/9ad6a0a/2147483647/strip/false/crop/1061x597+219+0/resize/1200x675!/quality/75/?url=https%3A%2F%2Fcalifornia-times-brightspot.s3.amazonaws.com%2Ff9%2F77%2F276a6a8f412a81c9090fc36e9d4a%2Fbloackchain-money.jpg",
         audioSrc: "https://res.cloudinary.com/dcwcjnxq8/video/upload/v1739198080/3_bs2uvh.mp3", 
         text: "Blockchain isn't magic—it's built on a combination of well-established technologies. In this episode, we explore the building blocks that enable blockchain to function."
       },
-
       {
         title: "From Ledgers to Blockchains: The Evolution of Financial Accounting",
         mediaSrc:"https://media2.giphy.com/media/re4m1Rc4OOYvgCZpYB/giphy.gif?cid=6c09b95274yv4p5qmkmafnt5nbh896coznsqwybkkl2kxgr7&ep=v1_gifs_search&rid=giphy.gif&ct=g",
         audioSrc: "https://res.cloudinary.com/dcwcjnxq8/video/upload/v1739198080/1_uomj0d.mp3",
         text: "Financial accounting has come a long way from pen-and-paper bookkeeping. In this episode, we explore how distributed ledger technologies are reshaping the way businesses manage transactions."
-      },
+      }
     ];
 
     const feed = document.getElementById('feed');
 
-    /***** Intersection Observer for Auto-Play/Pausing Audio *****/
+    /***** Intersection Observer for Auto-Playing/Pausing Audio *****/
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('active');
-          // Auto-play audio if available when post is at least 50% visible
+          // Auto-play audio if available
           if (entry.target.audioElement) {
             if (currentAudio && currentAudio !== entry.target.audioElement) {
               currentAudio.pause();
@@ -157,7 +167,7 @@
       });
     }, { threshold: 0.5 });
 
-    /***** Function to Add a Post *****/
+    /***** Function to Create and Append a Post *****/
     function addPost(postData) {
       const post = document.createElement('div');
       post.className = 'post';
@@ -169,7 +179,7 @@
       img.alt = postData.title;
       post.appendChild(img);
 
-      // If an audio file is provided, create a hidden audio element and store it on the post.
+      // If an audio file is provided, create a hidden audio element.
       if (postData.audioSrc) {
         const audio = document.createElement('audio');
         audio.src = postData.audioSrc;
@@ -179,34 +189,42 @@
         post.audioElement = audio;
       }
 
-      // Create an overlay for title, text, and rating.
+      // Create the overlay container.
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
 
+      // Title
       const titleElem = document.createElement('h2');
       titleElem.textContent = postData.title;
       overlay.appendChild(titleElem);
 
+      // Text / Description
       const textElem = document.createElement('p');
       textElem.textContent = postData.text;
       overlay.appendChild(textElem);
 
-      // Create a rating container with thumbs up and thumbs down buttons.
+      // Rating container.
       const ratingDiv = document.createElement('div');
       ratingDiv.className = 'rating';
 
+      // Thumbs Up Button with modern animation.
       const thumbsUp = document.createElement('button');
       thumbsUp.innerHTML = '👍';
       thumbsUp.addEventListener('click', () => {
-        thumbsUp.classList.add('selected-up');
-        setTimeout(() => thumbsUp.classList.remove('selected-up'), 1000);
+        thumbsUp.classList.add('thumbs-up-animate');
+      });
+      thumbsUp.addEventListener('animationend', () => {
+        thumbsUp.classList.remove('thumbs-up-animate');
       });
 
+      // Thumbs Down Button with modern animation.
       const thumbsDown = document.createElement('button');
       thumbsDown.innerHTML = '👎';
       thumbsDown.addEventListener('click', () => {
-        thumbsDown.classList.add('selected-down');
-        setTimeout(() => thumbsDown.classList.remove('selected-down'), 1000);
+        thumbsDown.classList.add('thumbs-down-animate');
+      });
+      thumbsDown.addEventListener('animationend', () => {
+        thumbsDown.classList.remove('thumbs-down-animate');
       });
 
       ratingDiv.appendChild(thumbsUp);
@@ -215,7 +233,7 @@
 
       post.appendChild(overlay);
 
-      // Add click event on the image to toggle its audio.
+      // Tapping the image toggles the audio on/off.
       img.addEventListener('click', () => {
         if (post.audioElement) {
           if (post.audioElement.paused) {
@@ -238,15 +256,14 @@
     }
 
     /***** Append Posts & Endless Loop *****/
-    // Append all posts from our preLoadedPosts array.
+    // Append one set of posts.
     function appendPosts() {
       preLoadedPosts.forEach(postData => addPost(postData));
     }
 
-    // Add initial set of posts.
     appendPosts();
 
-    // Endless loop: when scrolling near the bottom, append another copy of our posts.
+    // Endless loop: When scrolling near the bottom, append another copy.
     feed.addEventListener('scroll', () => {
       if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 50) {
         appendPosts();
