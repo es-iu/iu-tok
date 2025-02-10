@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TikTok-Style Endless Scrolling Feed</title>
+  <title>Endless Full-Screen Scrolling Feed</title>
   <style>
-    /* Reset & Base Styles */
+    /* Base Styles */
     * {
       box-sizing: border-box;
     }
@@ -13,25 +13,26 @@
       margin: 0;
       padding: 0;
       height: 100%;
+      background-color: #121212;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      scroll-behavior: smooth;
       overflow: hidden;
-      background-color: #000;
-      font-family: Arial, sans-serif;
     }
-    /* The feed container occupies the full viewport height and uses scroll snap */
+    /* Feed container that scroll-snaps */
     #feed {
       height: 100vh;
       overflow-y: scroll;
       scroll-snap-type: y mandatory;
       -webkit-overflow-scrolling: touch;
     }
-    /* Each post takes up 100vh and is relative so we can absolutely position the media & overlay */
+    /* Each post fills the viewport */
     .post {
       position: relative;
       height: 100vh;
       scroll-snap-align: start;
       overflow: hidden;
     }
-    /* Media (video or image) fills the post; object-fit: cover crops it like TikTok */
+    /* The media (video or image) fills the post */
     .media {
       position: absolute;
       top: 0;
@@ -41,79 +42,75 @@
       object-fit: cover;
       z-index: 1;
     }
-    /* The overlay contains text and controls; it sits on top of the media */
+    /* Overlay container for text, audio controls, and rating */
     .overlay {
       position: absolute;
       bottom: 0;
       left: 0;
-      right: 0;
+      width: 100%;
       padding: 20px;
+      /* A gradient from nearly opaque black at the bottom to transparent */
       background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      color: #ffffff;
       z-index: 2;
+      /* Start hidden and slide up */
       opacity: 0;
       transform: translateY(100%);
       transition: opacity 0.8s ease, transform 0.8s ease;
     }
-    /* When a post becomes active (at least 50% visible), show the overlay */
+    /* When a post is active, show the overlay */
     .post.active .overlay {
       opacity: 1;
       transform: translateY(0);
     }
-    /* Info section (title & description) on the left */
-    .info {
-      max-width: 70%;
-    }
-    .info h2 {
-      margin: 0;
+    /* Overlay text styling */
+    .overlay h2 {
+      margin: 0 0 10px 0;
       font-size: 2rem;
-      color: #fff;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     }
-    .info p {
-      margin: 5px 0 0;
-      font-size: 1rem;
-      color: #fff;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    .overlay p {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
     }
-    /* Actions section on the right: vertical thumbs up/down */
-    .actions {
+    /* Audio control styling */
+    .audio {
+      margin-top: 10px;
+      width: 100%;
+      max-width: 300px;
+    }
+    /* Rating buttons container */
+    .rating {
       display: flex;
-      flex-direction: column;
       gap: 10px;
+      margin-top: 10px;
     }
-    .actions button {
+    .rating button {
       font-size: 1.5rem;
-      background: rgba(255,255,255,0.2);
+      background-color: transparent;
       border: none;
-      border-radius: 50%;
-      padding: 10px;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: transform 0.1s ease, background-color 0.3s ease;
+      padding: 10px;
+      border-radius: 50%;
     }
-    .actions button.selected-up {
-      background-color: #4caf50;
+    .rating button:active {
+      transform: scale(1.2);
+    }
+    .rating button.selected-up {
+      background-color: #4caf50; /* green */
       color: #fff;
     }
-    .actions button.selected-down {
-      background-color: #f44336;
+    .rating button.selected-down {
+      background-color: #f44336; /* red */
       color: #fff;
     }
-    /* (Optional) Hide native video controls to mimic the modern full-screen style */
-    video::-webkit-media-controls {
-      display: none !important;
-    }
-    video::-moz-media-controls {
-      display: none !important;
-    }
+    /* Responsive text sizes on smaller screens */
     @media (max-width: 600px) {
-      .info h2 {
+      .overlay h2 {
         font-size: 1.5rem;
       }
-      .info p {
-        font-size: 0.9rem;
+      .overlay p {
+        font-size: 1rem;
       }
     }
   </style>
@@ -123,7 +120,7 @@
   <div id="feed"></div>
 
   <script>
-    // The preloaded posts array (adjust file names and paths as needed)
+    // Preloaded posts array using your provided media.
     const preLoadedPosts = [
       {
         title: "Bitcoin Podast",
@@ -149,19 +146,19 @@
 
     const feed = document.getElementById('feed');
 
-    // Function to create and append a post.
+    // Function to create and append a new post.
     function addPost(postData) {
       const post = document.createElement('div');
       post.className = 'post';
 
-      // Create the media element (video or image)
+      // Create media element (video or image).
       let mediaElement;
       if (postData.mediaType === "video") {
         mediaElement = document.createElement('video');
         mediaElement.src = postData.mediaSrc;
+        mediaElement.controls = true;
+        // Helps mobile devices play inline.
         mediaElement.setAttribute("playsinline", "");
-        // Hide native controls to mimic the TikTok style
-        mediaElement.controls = false;
       } else {
         mediaElement = document.createElement('img');
         mediaElement.src = postData.mediaSrc;
@@ -170,27 +167,38 @@
       mediaElement.classList.add('media');
       post.appendChild(mediaElement);
 
-      // Create the overlay for text and controls
+      // Create the overlay container.
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
 
-      // Info section (title and description)
-      const info = document.createElement('div');
-      info.className = 'info';
+      // Create and append the title.
       const titleEl = document.createElement('h2');
       titleEl.textContent = postData.title;
-      info.appendChild(titleEl);
+      overlay.appendChild(titleEl);
+
+      // Create and append the description.
       const textEl = document.createElement('p');
       textEl.textContent = postData.text;
-      info.appendChild(textEl);
-      overlay.appendChild(info);
+      overlay.appendChild(textEl);
 
-      // Actions section: thumbs up and thumbs down
-      const actions = document.createElement('div');
-      actions.className = 'actions';
+      // If an audio file is provided, create and append an audio player.
+      if (postData.audioSrc) {
+        const audioEl = document.createElement('audio');
+        audioEl.src = postData.audioSrc;
+        audioEl.controls = true;
+        audioEl.className = 'audio';
+        audioEl.preload = "metadata";
+        overlay.appendChild(audioEl);
+      }
+
+      // Create the rating container with thumbs up/down buttons.
+      const ratingDiv = document.createElement('div');
+      ratingDiv.className = 'rating';
+
       const thumbsUpBtn = document.createElement('button');
       thumbsUpBtn.innerHTML = '👍';
       thumbsUpBtn.addEventListener('click', () => {
+        // Toggle thumbs up: if already selected, unselect; otherwise select and unselect thumbs down.
         if (thumbsUpBtn.classList.contains('selected-up')) {
           thumbsUpBtn.classList.remove('selected-up');
         } else {
@@ -198,6 +206,7 @@
           thumbsDownBtn.classList.remove('selected-down');
         }
       });
+
       const thumbsDownBtn = document.createElement('button');
       thumbsDownBtn.innerHTML = '👎';
       thumbsDownBtn.addEventListener('click', () => {
@@ -208,37 +217,29 @@
           thumbsUpBtn.classList.remove('selected-up');
         }
       });
-      actions.appendChild(thumbsUpBtn);
-      actions.appendChild(thumbsDownBtn);
-      overlay.appendChild(actions);
 
-      // If an audio file is provided (e.g. for images), create a hidden audio element
-      if (postData.audioSrc) {
-        const audioEl = document.createElement('audio');
-        audioEl.src = postData.audioSrc;
-        // We hide the default controls; you could also create a custom audio icon if desired.
-        audioEl.controls = false;
-        audioEl.preload = "metadata";
-        // Append the audio element to the info section (or elsewhere) as needed.
-        info.appendChild(audioEl);
-      }
+      ratingDiv.appendChild(thumbsUpBtn);
+      ratingDiv.appendChild(thumbsDownBtn);
+      overlay.appendChild(ratingDiv);
 
       post.appendChild(overlay);
       feed.appendChild(post);
+
+      // Observe the post for auto-play/pause.
       observer.observe(post);
     }
 
-    // Intersection Observer to auto-play media when a post is in view and pause when it’s not.
+    // Intersection Observer: Auto-play media when a post is in view, pause when out.
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('active');
-          // Auto-play video elements.
+          // Auto-play any video elements.
           const videos = entry.target.getElementsByTagName('video');
           for (let v of videos) {
             v.play().catch(error => console.log("Video play error:", error));
           }
-          // Auto-play audio elements.
+          // Auto-play any audio elements.
           const audios = entry.target.getElementsByTagName('audio');
           for (let a of audios) {
             a.play().catch(error => console.log("Audio play error:", error));
@@ -248,12 +249,12 @@
           // Pause any playing videos.
           const videos = entry.target.getElementsByTagName('video');
           for (let v of videos) {
-            if (!v.paused) v.pause();
+            if (!v.paused) { v.pause(); }
           }
           // Pause any playing audios.
           const audios = entry.target.getElementsByTagName('audio');
           for (let a of audios) {
-            if (!a.paused) a.pause();
+            if (!a.paused) { a.pause(); }
           }
         }
       });
@@ -262,7 +263,7 @@
     // Append the initial set of posts.
     preLoadedPosts.forEach(postData => addPost(postData));
 
-    // Endless Loop: When scrolling near the bottom, re-append posts.
+    // Endless loop: When scrolling near the bottom, re-append posts.
     feed.addEventListener('scroll', () => {
       if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 100) {
         preLoadedPosts.forEach(postData => addPost(postData));
@@ -271,3 +272,4 @@
   </script>
 </body>
 </html>
+
